@@ -33,34 +33,68 @@ code {
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.user-item {
+/* Task Item Styles */
+.task-item {
   padding: 15px;
   border-bottom: 1px solid #eee;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  margin-bottom: 15px;
 }
 
-.user-item:last-child {
+.task-item:last-child {
   border-bottom: none;
 }
 
-.user-info {
+.task-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 15px;
+}
+
+.task-title {
+  font-weight: bold;
+  color: #333;
+  font-size: 16px;
   flex-grow: 1;
 }
 
-.user-name {
+.task-status {
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
   font-weight: bold;
-  color: #333;
-  margin-bottom: 5px;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
-.user-email {
+.task-description {
   color: #666;
   font-size: 14px;
+  line-height: 1.4;
+  margin: 5px 0;
 }
 
-.user-id {
+.task-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.task-meta {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.task-id {
   background: #e3f2fd;
   color: #1976d2;
   padding: 4px 8px;
@@ -69,6 +103,31 @@ code {
   font-weight: bold;
 }
 
+.task-date {
+  color: #999;
+  font-size: 12px;
+}
+
+.task-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* Edit Form Styles */
+.edit-form {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 4px;
+  border-left: 3px solid #1976d2;
+}
+
+.edit-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+/* Form Styles */
 .form-group {
   margin-bottom: 15px;
 }
@@ -80,14 +139,27 @@ code {
   color: #333;
 }
 
-.form-group input {
+.form-group input,
+.form-group textarea,
+.form-group select {
   width: 100%;
   padding: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
+  box-sizing: border-box;
 }
 
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-group select {
+  cursor: pointer;
+}
+
+/* Button Styles */
 .btn {
   background: #1976d2;
   color: white;
@@ -97,6 +169,7 @@ code {
   cursor: pointer;
   font-size: 14px;
   font-weight: bold;
+  transition: background-color 0.2s;
 }
 
 .btn:hover {
@@ -108,6 +181,44 @@ code {
   cursor: not-allowed;
 }
 
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.btn-edit {
+  background: #f57c00;
+}
+
+.btn-edit:hover {
+  background: #ef6c00;
+}
+
+.btn-delete {
+  background: #d32f2f;
+}
+
+.btn-delete:hover {
+  background: #c62828;
+}
+
+.btn-save {
+  background: #388e3c;
+}
+
+.btn-save:hover {
+  background: #2e7d32;
+}
+
+.btn-cancel {
+  background: #757575;
+}
+
+.btn-cancel:hover {
+  background: #616161;
+}
+
+/* Utility Styles */
 .loading {
   text-align: center;
   padding: 40px;
@@ -120,6 +231,7 @@ code {
   background: #ffebee;
   border-radius: 4px;
   margin-bottom: 20px;
+  border-left: 4px solid #d32f2f;
 }
 
 .success {
@@ -128,4 +240,32 @@ code {
   background: #e8f5e8;
   border-radius: 4px;
   margin-bottom: 20px;
+  border-left: 4px solid #2e7d32;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    padding: 10px;
+  }
+  
+  .task-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .task-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .task-actions {
+    align-self: stretch;
+  }
+  
+  .task-actions .btn {
+    flex: 1;
+  }
 }

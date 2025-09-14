@@ -37,10 +37,12 @@ type Config struct {
 	} `yaml:"security"`
 }
 
-type User struct {
-	ID    int    `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
+type Task struct {
+	ID          int    `json:"id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Status      string `json:"status"`
+	CreatedAt   string `json:"created_at"`
 }
 
 type HealthResponse struct {
@@ -75,10 +77,12 @@ func initDatabase() error {
 	}
 
 	createTableQuery := `
-	CREATE TABLE IF NOT EXISTS users (
+	CREATE TABLE IF NOT EXISTS tasks (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		name TEXT NOT NULL,
-		email TEXT NOT NULL UNIQUE
+		title TEXT NOT NULL,
+		description TEXT,
+		status TEXT DEFAULT 'pending',
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);`
 
 	_, err = db.Exec(createTableQuery)
@@ -87,10 +91,10 @@ func initDatabase() error {
 	}
 
 	insertSampleData := `
-	INSERT OR IGNORE INTO users (name, email) VALUES 
-		('John Doe', 'john@example.com'),
-		('Jane Smith', 'jane@example.com'),
-		('Bob Johnson', 'bob@example.com');`
+	INSERT OR IGNORE INTO tasks (title, description, status) VALUES 
+		('Setup Development Environment', 'Install and configure development tools', 'completed'),
+		('Create API Documentation', 'Document all API endpoints and responses', 'in_progress'),
+		('Deploy to Production', 'Deploy application to production environment', 'pending');`
 
 	_, err = db.Exec(insertSampleData)
 	return err
@@ -118,61 +122,121 @@ func corsMiddleware() gin.HandlerFunc {
 	}
 }
 
-func getUsers(c *gin.Context) {
-	rows, err := db.Query("SELECT id, name, email FROM users")
+func getTasks(c *gin.Context) {
+	rows, err := db.Query("SELECT id, title, description, status, created_at FROM tasks ORDER BY id DESC")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	defer rows.Close()
 
-	var users []User
+	var tasks []Task
 	for rows.Next() {
-		var user User
-		err := rows.Scan(&user.ID, &user.Name, &user.Email)
+		var task Task
+		err := rows.Scan(&task.ID, &task.Title, &task.Description, &task.Status, &task.CreatedAt)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		users = append(users, user)
+		tasks = append(tasks, task)
 	}
 
-	c.JSON(http.StatusOK, users)
+	c.JSON(http.StatusOK, tasks)
 }
 
-func createUser(c *gin.Context) {
-	var user User
-	if err := c.ShouldBindJSON(&user); err != nil {
+func createTask(c *gin.Context) {
+	var task Task
+	if err := c.ShouldBindJSON(&task); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	result, err := db.Exec("INSERT INTO users (name, email) VALUES (?, ?)", user.Name, user.Email)
+	if task.Status == "" {
+		task.Status = "pending"
+	}
+
+	result, err := db.Exec("INSERT INTO tasks (title, description, status) VALUES (?, ?, ?)", task.Title, task.Description, task.Status)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	id, _ := result.LastInsertId()
-	user.ID = int(id)
-	c.JSON(http.StatusCreated, user)
+	task.ID = int(id)
+
+	// Get the created_at timestamp
+	err = db.QueryRow("SELECT created_at FROM tasks WHERE id = ?", task.ID).Scan(&task.CreatedAt)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, task)
 }
 
-func getUser(c *gin.Context) {
+func getTask(c *gin.Context) {
 	id := c.Param("id")
-	var user User
+	var task Task
 
-	err := db.QueryRow("SELECT id, name, email FROM users WHERE id = ?", id).Scan(&user.ID, &user.Name, &user.Email)
+	err := db.QueryRow("SELECT id, title, description, status, created_at FROM tasks WHERE id = ?", id).Scan(&task.ID, &task.Title, &task.Description, &task.Status, &task.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 		return
 	}
 
-	c.JSON(http.StatusOK, user)
+	c.JSON(http.StatusOK, task)
+}
+
+func updateTask(c *gin.Context) {
+	id := c.Param("id")
+	var task Task
+	if err := c.ShouldBindJSON(&task); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	result, err := db.Exec("UPDATE tasks SET title = ?, description = ?, status = ? WHERE id = ?", task.Title, task.Description, task.Status, id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
+		return
+	}
+
+	// Get the updated task
+	err = db.QueryRow("SELECT id, title, description, status, created_at FROM tasks WHERE id = ?", id).Scan(&task.ID, &task.Title, &task.Description, &task.Status, &task.CreatedAt)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, task)
+}
+
+func deleteTask(c *gin.Context) {
+	id := c.Param("id")
+
+	result, err := db.Exec("DELETE FROM tasks WHERE id = ?", id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Task deleted successfully"})
 }
 
 func healthCheck(c *gin.Context) {
@@ -209,9 +273,11 @@ func main() {
 	api := r.Group("/api/v1")
 	{
 		api.GET("/health", healthCheck)
-		api.GET("/users", getUsers)
-		api.POST("/users", createUser)
-		api.GET("/users/:id", getUser)
+		api.GET("/tasks", getTasks)
+		api.POST("/tasks", createTask)
+		api.GET("/tasks/:id", getTask)
+		api.PUT("/tasks/:id", updateTask)
+		api.DELETE("/tasks/:id", deleteTask)
 	}
 
 	port := config.App.Port

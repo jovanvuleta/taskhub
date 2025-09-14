@@ -7,8 +7,9 @@ RUN npm install
 
 COPY . .
 
-# Set API URL for build - use relative path for ingress
-ENV REACT_APP_API_URL=/api/v1
+# Accept build argument for API URL
+ARG REACT_APP_API_URL=/api/v1
+ENV REACT_APP_API_URL=$REACT_APP_API_URL
 
 RUN npm run build
 

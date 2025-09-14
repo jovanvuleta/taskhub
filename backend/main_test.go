@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -55,9 +56,11 @@ func setupTestRouter() *gin.Engine {
 	api := r.Group("/api/v1")
 	{
 		api.GET("/health", healthCheck)
-		api.GET("/users", getUsers)
-		api.POST("/users", createUser)
-		api.GET("/users/:id", getUser)
+		api.GET("/tasks", getTasks)
+		api.POST("/tasks", createTask)
+		api.GET("/tasks/:id", getTask)
+		api.PUT("/tasks/:id", updateTask)
+		api.DELETE("/tasks/:id", deleteTask)
 	}
 
 	return r
@@ -78,68 +81,178 @@ func TestHealthCheck(t *testing.T) {
 	assert.Equal(t, "healthy", response.Status)
 }
 
-func TestCreateUser(t *testing.T) {
+func TestCreateTask(t *testing.T) {
 	router := setupTestRouter()
 
-	user := User{
-		Name:  "Test User",
-		Email: "test@example.com",
+	task := Task{
+		Title:       "Test Task",
+		Description: "This is a test task",
+		Status:      "pending",
 	}
-	jsonValue, _ := json.Marshal(user)
+	jsonValue, _ := json.Marshal(task)
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/api/v1/users", bytes.NewBuffer(jsonValue))
+	req, _ := http.NewRequest("POST", "/api/v1/tasks", bytes.NewBuffer(jsonValue))
 	req.Header.Set("Content-Type", "application/json")
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, 201, w.Code)
 
-	var response User
+	var response Task
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	assert.Equal(t, user.Name, response.Name)
-	assert.Equal(t, user.Email, response.Email)
+	assert.Equal(t, task.Title, response.Title)
+	assert.Equal(t, task.Description, response.Description)
+	assert.Equal(t, task.Status, response.Status)
 	assert.NotEqual(t, 0, response.ID)
 }
 
-func TestCreateUserInvalidEmail(t *testing.T) {
+func TestCreateTaskMissingTitle(t *testing.T) {
 	router := setupTestRouter()
 
-	user := User{
-		Name:  "Test User",
-		Email: "invalid-email",
+	task := Task{
+		Description: "This task has no title",
+		Status:      "pending",
 	}
-	jsonValue, _ := json.Marshal(user)
+	jsonValue, _ := json.Marshal(task)
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/api/v1/users", bytes.NewBuffer(jsonValue))
+	req, _ := http.NewRequest("POST", "/api/v1/tasks", bytes.NewBuffer(jsonValue))
 	req.Header.Set("Content-Type", "application/json")
 	router.ServeHTTP(w, req)
 
-	// Current implementation accepts any email format
+	// Current implementation accepts tasks without title validation
 	assert.Equal(t, 201, w.Code)
 }
 
-func TestGetUsers(t *testing.T) {
+func TestGetTasks(t *testing.T) {
 	router := setupTestRouter()
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/api/v1/users", nil)
+	req, _ := http.NewRequest("GET", "/api/v1/tasks", nil)
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, 200, w.Code)
 
-	var users []User
-	err := json.Unmarshal(w.Body.Bytes(), &users)
+	var tasks []Task
+	err := json.Unmarshal(w.Body.Bytes(), &tasks)
 	assert.NoError(t, err)
-	assert.GreaterOrEqual(t, len(users), 0)
+	assert.GreaterOrEqual(t, len(tasks), 0)
+}
+
+func TestGetTask(t *testing.T) {
+	router := setupTestRouter()
+
+	// First create a task
+	task := Task{
+		Title:       "Test Task",
+		Description: "This is a test task",
+		Status:      "pending",
+	}
+	jsonValue, _ := json.Marshal(task)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/api/v1/tasks", bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w, req)
+
+	var createdTask Task
+	json.Unmarshal(w.Body.Bytes(), &createdTask)
+
+	// Now get the task by ID
+	w = httptest.NewRecorder()
+	req, _ = http.NewRequest("GET", "/api/v1/tasks/"+strconv.Itoa(createdTask.ID), nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, 200, w.Code)
+
+	var response Task
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Equal(t, createdTask.ID, response.ID)
+	assert.Equal(t, task.Title, response.Title)
+}
+
+func TestUpdateTask(t *testing.T) {
+	router := setupTestRouter()
+
+	// First create a task
+	task := Task{
+		Title:       "Original Task",
+		Description: "Original description",
+		Status:      "pending",
+	}
+	jsonValue, _ := json.Marshal(task)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/api/v1/tasks", bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w, req)
+
+	var createdTask Task
+	json.Unmarshal(w.Body.Bytes(), &createdTask)
+
+	// Update the task
+	updatedTask := Task{
+		Title:       "Updated Task",
+		Description: "Updated description",
+		Status:      "completed",
+	}
+	jsonValue, _ = json.Marshal(updatedTask)
+
+	w = httptest.NewRecorder()
+	req, _ = http.NewRequest("PUT", "/api/v1/tasks/"+strconv.Itoa(createdTask.ID), bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, 200, w.Code)
+
+	var response Task
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Equal(t, updatedTask.Title, response.Title)
+	assert.Equal(t, updatedTask.Status, response.Status)
+}
+
+func TestDeleteTask(t *testing.T) {
+	router := setupTestRouter()
+
+	// First create a task
+	task := Task{
+		Title:       "Task to Delete",
+		Description: "This task will be deleted",
+		Status:      "pending",
+	}
+	jsonValue, _ := json.Marshal(task)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/api/v1/tasks", bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w, req)
+
+	var createdTask Task
+	json.Unmarshal(w.Body.Bytes(), &createdTask)
+
+	// Delete the task
+	w = httptest.NewRecorder()
+	req, _ = http.NewRequest("DELETE", "/api/v1/tasks/"+strconv.Itoa(createdTask.ID), nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, 200, w.Code)
+
+	// Verify task is deleted by trying to get it
+	w = httptest.NewRecorder()
+	req, _ = http.NewRequest("GET", "/api/v1/tasks/"+strconv.Itoa(createdTask.ID), nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, 404, w.Code)
 }
 
 func TestCorsMiddleware(t *testing.T) {
 	router := setupTestRouter()
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("OPTIONS", "/api/v1/users", nil)
+	req, _ := http.NewRequest("OPTIONS", "/api/v1/tasks", nil)
 	req.Header.Set("Origin", "http://localhost:3000")
 	router.ServeHTTP(w, req)
 
