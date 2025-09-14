@@ -39,8 +39,8 @@ jobs:
     - name: Test Frontend
       working-directory: ./frontend
       run: |
-        npm ci
-        npm run test -- --coverage --passWithNoTests
+        npm install
+        CI=true npm run test -- --coverage --passWithNoTests --watchAll=false
 
   build:
     needs: test
