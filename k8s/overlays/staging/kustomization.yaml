@@ -1,0 +1,25 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: taskhub-staging
+  annotations:
+    config.kubernetes.io/local-config: "true"
+
+namespace: staging
+
+resources:
+- ../../base
+
+patches:
+- path: staging-patches.yaml
+
+labels:
+- pairs:
+    environment: staging
+
+images:
+- name: taskhub-backend
+  newTag: v0.0.1-staging
+- name: taskhub-frontend
+  newTag: v0.0.1-staging

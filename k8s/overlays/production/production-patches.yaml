@@ -1,0 +1,94 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+data:
+  config.yaml: |
+    app:
+      name: "taskhub-backend"
+      version: "1.0.0"
+      port: 8080
+      environment: "production"
+
+    database:
+      type: "sqlite"
+      path: "./data.db"
+      max_connections: 200
+      timeout: 30
+
+    logging:
+      level: "info"
+      format: "json"
+
+    security:
+      cors_enabled: true
+      cors_origins: 
+        - "https://taskhub.dev"
+        - "https://www.taskhub.dev"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+      - name: backend
+        env:
+          - name: REACT_APP_API_URL
+            value: "http://backend:8080/api/v1"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+      - name: frontend
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app-ingress
+spec:
+  tls:
+    - hosts:
+        - taskhub.dev
+      secretName: taskhub-production-tls
+  rules:
+    - host: taskhub.dev
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 3000

@@ -1,0 +1,110 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+data:
+  config.yaml: |
+    app:
+      name: "taskhub-backend"
+      version: "1.0.0"
+      port: 8080
+      environment: "staging"
+
+    database:
+      type: "sqlite"
+      path: "./data.db"
+      max_connections: 50
+      timeout: 30
+
+    logging:
+      level: "debug"
+      format: "json"
+
+    security:
+      cors_enabled: true
+      cors_origins: 
+        - "https://staging.taskhub.dev"
+        - "http://localhost:3000"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+      - name: backend
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "250m"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+      - name: frontend
+        env:
+          - name: REACT_APP_API_URL
+            value: "http://backend:8080/api/v1"
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "25m"
+          limits:
+            memory: "128Mi"
+            cpu: "125m"
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app-ingress
+spec:
+  tls:
+  - hosts:
+    - staging.taskhub.dev
+    secretName: taskhub-staging-tls
+  rules:
+  - host: staging.taskhub.dev
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: backend
+            port:
+              number: 8080
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend
+            port:
+              number: 3000
+  - http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: backend
+            port:
+              number: 8080
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend
+            port:
+              number: 3000

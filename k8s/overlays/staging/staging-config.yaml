@@ -1,0 +1,21 @@
+app:
+  name: "backend"
+  version: "1.0.0"
+  port: 8080
+  environment: "staging"
+
+database:
+  type: "sqlite"
+  path: "./data.db"
+  max_connections: 50
+  timeout: 30
+
+logging:
+  level: "debug"
+  format: "json"
+
+security:
+  cors_enabled: true
+  cors_origins: 
+    - "https://staging.taskhub.dev"
+    - "http://localhost:3000"

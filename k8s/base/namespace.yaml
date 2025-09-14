@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: taskhub
+  labels:
+    app.kubernetes.io/name: taskhub
+    app.kubernetes.io/version: "1.0.0"

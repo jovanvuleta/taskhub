@@ -1,0 +1,95 @@
+# Operating System files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Go files
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+/vendor/
+*.test
+*.out
+go.work
+go.work.sum
+
+# Backend specific
+backend/main
+backend/data.db
+backend/*.db
+backend/logs/
+backend/coverage.out
+
+# Node.js files  
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Frontend specific
+frontend/build/
+frontend/dist/
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# Log files
+*.log
+logs/
+
+# Docker
+.docker/
+
+# Kubernetes secrets and configs (if any local ones exist)
+kubeconfig
+*.kubeconfig
+k8s-secrets.yaml
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# SSL certificates
+*.pem
+*.key
+*.crt
+*.csr
+
+# Build artifacts
+dist/
+build/
+
+# Coverage reports
+coverage/
+*.lcov
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Deployment files that might contain secrets
+deployment-audit.log
+staging-trust-policy.json
+production-trust-policy.json

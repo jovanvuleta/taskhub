@@ -1,0 +1,25 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: taskhub-production
+  annotations:
+    config.kubernetes.io/local-config: "true"
+
+namespace: production
+
+resources:
+- ../../base
+
+patches:
+- path: production-patches.yaml
+
+labels:
+- pairs:
+    environment: production
+
+images:
+- name: taskhub-backend
+  newTag: v1.0.0
+- name: taskhub-frontend
+  newTag: v1.0.0

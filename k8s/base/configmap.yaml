@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  labels:
+    app.kubernetes.io/name: backend-config
+    app.kubernetes.io/component: backend
+data:
+  config.yaml: |
+    app:
+      name: "taskhub-backend"
+      version: "1.0.0"
+      port: 8080
+      environment: "development"
+
+    database:
+      type: "sqlite"
+      path: "./data.db"
+      max_connections: 100
+      timeout: 30
+
+    logging:
+      level: "info"
+      format: "json"
+
+    security:
+      cors_enabled: true
+      cors_origins: 
+        - "http://localhost:3000"
+        - "http://localhost:8080"
