@@ -1,0 +1,45 @@
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: taskhub-production
+  namespace: flux-system
+spec:
+  interval: 5m0s
+  path: "./k8s/overlays/production"
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: taskhub-config
+  targetNamespace: production
+  healthChecks:
+    - apiVersion: apps/v1
+      kind: Deployment
+      name: backend
+      namespace: production
+    - apiVersion: apps/v1
+      kind: Deployment
+      name: frontend
+      namespace: production
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: taskhub-staging
+  namespace: flux-system
+spec:
+  interval: 1m0s
+  path: "./k8s/overlays/staging"
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: taskhub-config-staging
+  targetNamespace: staging
+  healthChecks:
+    - apiVersion: apps/v1
+      kind: Deployment
+      name: backend
+      namespace: staging
+    - apiVersion: apps/v1
+      kind: Deployment
+      name: frontend
+      namespace: staging

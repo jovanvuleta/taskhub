@@ -1,0 +1,21 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: taskhub-config
+  namespace: flux-system
+spec:
+  interval: 1m0s
+  ref:
+    branch: main
+  url: https://github.com/jovanvuleta/taskhub
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: taskhub-config-staging
+  namespace: flux-system
+spec:
+  interval: 1m0s
+  ref:
+    branch: staging
+  url: https://github.com/jovanvuleta/taskhub

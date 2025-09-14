@@ -109,92 +109,47 @@ jobs:
       with:
         sarif_file: 'trivy-results.sarif'
 
-  deploy:
+  # GitOps: Flux handles deployment automatically when images are pushed
+  # This job only logs the successful build and lets Flux do the deployment
+  deployment-notification:
     needs: [build, security-scan]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging'
     environment:
       name: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
       url: ${{ github.ref == 'refs/heads/main' && 'https://taskhub.dev' || 'https://staging.taskhub.dev' }}
-    permissions:
-      contents: read
-      id-token: write  # For OIDC authentication with AWS
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set environment variables
+    - name: Deployment notification
       run: |
-        if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-          echo "ENVIRONMENT=production" >> $GITHUB_ENV
-          echo "CLUSTER_NAME=production-cluster" >> $GITHUB_ENV
-          echo "AWS_ROLE_ARN=${{ secrets.AWS_ROLE_ARN_PRODUCTION }}" >> $GITHUB_ENV
-        else
-          echo "ENVIRONMENT=staging" >> $GITHUB_ENV
-          echo "CLUSTER_NAME=staging-cluster" >> $GITHUB_ENV
-          echo "AWS_ROLE_ARN=${{ secrets.AWS_ROLE_ARN_STAGING }}" >> $GITHUB_ENV
-        fi
-
-    - name: Set up kubectl
-      uses: azure/setup-kubectl@v3
-      with:
-        version: 'v1.28.0'
-
-    - name: Install Kustomize
-      run: |
-        curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
-        sudo mv kustomize /usr/local/bin/
-
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        role-to-assume: ${{ env.AWS_ROLE_ARN }}
-        aws-region: us-east-1
-        
-    - name: Configure kubectl
-      run: |
-        aws eks update-kubeconfig --region us-east-1 --name ${{ env.CLUSTER_NAME }}
-
-    - name: Update image tags
-      run: |
-        cd k8s/overlays/${{ env.ENVIRONMENT }}
-        # Update backend image tag
-        kustomize edit set image taskhub-backend=ghcr.io/${{ github.repository_owner }}/taskhub-backend:${{ github.sha }}
-        # Update frontend image tag
-        kustomize edit set image taskhub-frontend=ghcr.io/${{ github.repository_owner }}/taskhub-frontend:${{ github.sha }}
-
-    - name: Deploy
-      run: |
-        # Audit logging
-        echo "🚀 DEPLOYMENT AUDIT LOG" | tee -a deployment-audit.log
-        echo "Environment: ${{ env.ENVIRONMENT }}" | tee -a deployment-audit.log  
+        ENVIRONMENT=${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+        echo "🚀 GITOPS DEPLOYMENT TRIGGERED" | tee -a deployment-audit.log
+        echo "Environment: $ENVIRONMENT" | tee -a deployment-audit.log  
         echo "Actor: ${{ github.actor }}" | tee -a deployment-audit.log
         echo "Commit: ${{ github.sha }}" | tee -a deployment-audit.log
         echo "Timestamp: $(date -u)" | tee -a deployment-audit.log
-        echo "Images:" | tee -a deployment-audit.log
+        echo "Images pushed:" | tee -a deployment-audit.log
         echo "  Backend: ghcr.io/${{ github.repository_owner }}/taskhub-backend:${{ github.sha }}" | tee -a deployment-audit.log
         echo "  Frontend: ghcr.io/${{ github.repository_owner }}/taskhub-frontend:${{ github.sha }}" | tee -a deployment-audit.log
-        echo "---" | tee -a deployment-audit.log
-        
-        # Deploy with verification
-        kubectl apply -k k8s/overlays/${{ env.ENVIRONMENT }}
-        kubectl rollout status deployment/backend -n ${{ env.ENVIRONMENT }} --timeout=300s
-        kubectl rollout status deployment/frontend -n ${{ env.ENVIRONMENT }} --timeout=300s
-        
-        # Verify deployment
-        kubectl get pods -n ${{ env.ENVIRONMENT }}
-        echo "✅ ${{ env.ENVIRONMENT }} deployment completed successfully" | tee -a deployment-audit.log
+        echo "" | tee -a deployment-audit.log
+        echo "📡 Flux will automatically:" | tee -a deployment-audit.log
+        echo "  1. Detect new image tags in container registry" | tee -a deployment-audit.log
+        echo "  2. Update Kustomize configuration files" | tee -a deployment-audit.log  
+        echo "  3. Deploy to $ENVIRONMENT environment" | tee -a deployment-audit.log
+        echo "  4. Commit image updates back to repository" | tee -a deployment-audit.log
+        echo "" | tee -a deployment-audit.log
+        echo "⏳ Deployment will complete within 1-2 minutes via GitOps" | tee -a deployment-audit.log
 
   notify:
-    needs: deploy
+    needs: deployment-notification
     runs-on: ubuntu-latest
     if: always()
     steps:
     - name: Notify deployment status
       run: |
-        if [[ "${{ needs.deploy.result }}" == "success" ]]; then
-          echo "✅ Deployment successful"
+        if [[ "${{ needs.deployment-notification.result }}" == "success" ]]; then
+          echo "✅ GitOps deployment triggered successfully"
+          echo "🔄 Flux will handle the actual deployment to cluster"
         else
-          echo "❌ Deployment failed"
+          echo "❌ GitOps deployment trigger failed"
           exit 1
         fi

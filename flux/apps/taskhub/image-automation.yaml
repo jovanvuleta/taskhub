@@ -1,0 +1,70 @@
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImageRepository
+metadata:
+  name: taskhub-backend
+  namespace: flux-system
+spec:
+  image: ghcr.io/jovanvuleta/taskhub-backend
+  interval: 1m0s
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImageRepository
+metadata:
+  name: taskhub-frontend
+  namespace: flux-system
+spec:
+  image: ghcr.io/jovanvuleta/taskhub-frontend
+  interval: 1m0s
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImagePolicy
+metadata:
+  name: taskhub-backend-policy
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: taskhub-backend
+  policy:
+    semver:
+      range: '>=0.0.0'
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImagePolicy
+metadata:
+  name: taskhub-frontend-policy
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: taskhub-frontend
+  policy:
+    semver:
+      range: '>=0.0.0'
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImageUpdateAutomation
+metadata:
+  name: taskhub-automation
+  namespace: flux-system
+spec:
+  interval: 1m0s
+  sourceRef:
+    kind: GitRepository
+    name: taskhub-config
+  git:
+    checkout:
+      ref:
+        branch: main
+    commit:
+      author:
+        email: fluxcdbot@users.noreply.github.com
+        name: fluxcdbot
+      messageTemplate: |
+        🤖 Update image tags
+        
+        Backend: {{ range .Updated.Images }}{{ if eq .Name "ghcr.io/jovanvuleta/taskhub-backend" }}{{ .Identifier }}{{ end }}{{ end }}
+        Frontend: {{ range .Updated.Images }}{{ if eq .Name "ghcr.io/jovanvuleta/taskhub-frontend" }}{{ .Identifier }}{{ end }}{{ end }}
+    push:
+      branch: main
+  update:
+    path: "./k8s/overlays"
+    strategy: Setters
