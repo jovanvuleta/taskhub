@@ -20,6 +20,6 @@ labels:
 
 images:
 - name: taskhub-backend
-  newTag: v1.0.0
+  newTag: v0.0.1
 - name: taskhub-frontend
-  newTag: v1.0.0
+  newTag: v0.0.1
