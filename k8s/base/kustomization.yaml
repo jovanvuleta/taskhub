@@ -27,7 +27,11 @@ labels:
 images:
 - name: taskhub-backend
   newName: taskhub-backend  # Use local image
+  # newName: ghcr.io/jovanvuleta/taskhub-backend # {"$imagepolicy": "flux-system:taskhub-backend-policy"} - For automatic updates
   newTag: v0.0.1
+  # newTag: v0.0.1 # {"$imagepolicy": "flux-system:taskhub-backend-policy:tag"} - For automatic updates
 - name: taskhub-frontend
   newName: taskhub-frontend  # Use local image
+  # newName: ghcr.io/jovanvuleta/taskhub-frontend # {"$imagepolicy": "flux-system:taskhub-frontend-policy"} - For automatic updates
   newTag: v0.0.1
+  # newTag: v0.0.1 # {"$imagepolicy": "flux-system:taskhub-frontend-policy:tag"} - For automatic updates
