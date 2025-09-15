@@ -58,12 +58,6 @@ flux bootstrap github \
   --personal \
   --components-extra=image-reflector-controller,image-automation-controller
 
-# Apply Flux configuration
-echo -e "${GREEN}⚙️  Applying Flux configuration...${NC}"
-kubectl apply -f flux/infrastructure/sources/
-kubectl apply -f flux/infrastructure/controllers/
-kubectl apply -f flux/apps/taskhub/
-
 # Wait for Flux to be ready
 echo -e "${GREEN}⏳ Waiting for Flux to be ready...${NC}"
 flux get sources git
